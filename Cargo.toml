@@ -1,0 +1,18 @@
+[package]
+name = "flappy_"
+version = "0.1.0"
+authors = ["hao"]
+edition = "2021"
+rust-version = "1.76"
+build = "build.rs"
+
+[dependencies]
+bevy = { version = "0.16", features = ["default", "vorbis", "jpeg"] }
+rand = "0.8"
+
+[[bin]]
+name = "flappy_bevy"
+path = "src/main.rs"
+
+[build-dependencies]
+fs_extra = "1.3"
