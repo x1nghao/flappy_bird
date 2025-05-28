@@ -371,14 +371,43 @@ pub fn pipe_spawn_system(
 pub fn scrolling_system(
     time: Res<Time>,
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Transform, &Scrolling)>,
+    mut query: Query<(Entity, &mut Transform, &Scrolling), (Without<Mountain>, Without<Cloud>)>,
+    mut mountain_query: Query<&mut Transform, (With<Mountain>, Without<Cloud>)>,
+    mut cloud_query: Query<&mut Transform, (With<Cloud>, Without<Mountain>)>,
 ) {
+    // 处理普通滚动实体（管道等）
     for (entity, mut transform, scrolling) in query.iter_mut() {
         transform.translation.x -= scrolling.speed * time.delta_secs();
         
         // 移除超出屏幕的实体
         if transform.translation.x < -600.0 {
             commands.entity(entity).despawn();
+        }
+    }
+    
+    // 处理山脉循环滚动
+    for mut transform in mountain_query.iter_mut() {
+        transform.translation.x -= 50.0 * time.delta_secs();
+        
+        // 当山脉移出左侧时，移动到屏幕右侧外并添加随机间隔
+        if transform.translation.x < -600.0 {
+            let mut rng = rand::thread_rng();
+            let random_gap = rng.gen_range(100.0..400.0); // 随机间隔100-400像素
+            // 移动到屏幕右侧外（600像素外）+ 基础间距 + 随机间隔
+            transform.translation.x = 600.0 + 200.0 + random_gap;
+        }
+    }
+    
+    // 处理云朵循环滚动
+    for mut transform in cloud_query.iter_mut() {
+        transform.translation.x -= 30.0 * time.delta_secs();
+        
+        // 当云朵移出左侧时，移动到屏幕右侧外并添加随机间隔
+        if transform.translation.x < -600.0 {
+            let mut rng = rand::thread_rng();
+            let random_gap = rng.gen_range(200.0..600.0); // 随机间隔200-600像素
+            // 移动到屏幕右侧外（600像素外）+ 基础间距 + 随机间隔
+            transform.translation.x = 600.0 + 300.0 + random_gap;
         }
     }
 }

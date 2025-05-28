@@ -11,6 +11,7 @@ Cargo.lock
 .vscode/tasks.json
 .vscode/launch.json
 .vscode/.ropeproject
+.vscode/
 .idea/
 *.swp
 *.swo
