@@ -74,7 +74,7 @@ jobs:
           ${{ runner.os }}-${{ matrix.target }}-target-
 
     - name: Build
-        run: |
+      run: |
           # 确保assets目录存在（Windows嵌入式资源需要）
           if [ ! -d "assets" ]; then
             echo "Warning: assets directory not found, creating empty one"
