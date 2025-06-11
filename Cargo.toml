@@ -1,6 +1,6 @@
 [package]
 name = "flappy_bird"
-version = "0.1.0"
+version = "1.0.1"
 authors = ["hao"]
 edition = "2021"
 rust-version = "1.76"
@@ -8,7 +8,7 @@ build = "build.rs"
 
 [dependencies]
 bevy = { version = "0.16", features = ["default", "vorbis", "jpeg"] }
-rand = "0.8"
+rand = "0.9.1"
 
 [[bin]]
 name = "flappy_bird"

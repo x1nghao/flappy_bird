@@ -22,12 +22,6 @@ pub struct Bird {
 pub enum PipeType {
     Green,
     Red,
-    ColorfulGourd3,
-    ColorfulGourd4,
-    Lantern2,
-    Lantern3,
-    Gourd3,
-    Gourd5,
 }
 
 // 管道组件
@@ -84,56 +78,51 @@ impl PipeType {
         match self {
             PipeType::Green => "pipes/pipe-green.png",
             PipeType::Red => "pipes/pipe-red.png",
-            PipeType::ColorfulGourd3 => "pipes/彩葫芦串3.png",
-            PipeType::ColorfulGourd4 => "pipes/彩葫芦串4.png",
-            PipeType::Lantern2 => "pipes/灯笼2.png",
-            PipeType::Lantern3 => "pipes/灯笼3.png",
-            PipeType::Gourd3 => "pipes/葫芦串3.png",
-            PipeType::Gourd5 => "pipes/葫芦串5.png",
         }
     }
     
     pub fn get_scale(&self) -> f32 {
         match self {
-            // 英文管道使用标准缩放
             PipeType::Green | PipeType::Red => 1.0,
-            // 中文装饰物需要调整缩放比例 - 进一步缩小
-            PipeType::ColorfulGourd3 | PipeType::ColorfulGourd4 => 0.5,  // 从0.8改为0.5
-            PipeType::Lantern2 | PipeType::Lantern3 => 0.4,  // 从0.6改为0.4
-            PipeType::Gourd3 | PipeType::Gourd5 => 0.5,  // 从0.7改为0.5
         }
     }
     
     pub fn get_collision_bounds(&self) -> (f32, f32) {
         // 返回 (width_factor, height_factor) 相对于原始尺寸的比例
         match self {
-            PipeType::Green | PipeType::Red => (0.8, 0.9), // 英文管道，减少透明区域
-            PipeType::ColorfulGourd3 | PipeType::ColorfulGourd4 => (0.6, 0.7), // 糖葫芦形状不规则
-            PipeType::Lantern2 | PipeType::Lantern3 => (0.7, 0.8), // 灯笼中间较宽
-            PipeType::Gourd3 | PipeType::Gourd5 => (0.6, 0.8), // 葫芦串形状
+            PipeType::Green | PipeType::Red => (0.8, 0.9),
+        }
+    }
+    
+    // 获取碰撞区域
+    pub fn get_collision_segments(&self) -> Vec<(f32, f32, f32, f32)> {
+        // 返回碰撞矩形段：(x_offset, y_offset, width_factor, height_factor)
+        match self {
+            PipeType::Green | PipeType::Red => {
+                // 传统管道使用单一矩形
+                vec![(0.0, 0.0, 0.8, 0.9)]
+            },
         }
     }
     
     pub fn get_collision_offset(&self) -> (f32, f32) {
         // 返回碰撞中心相对于图片中心的偏移
         match self {
-            PipeType::Green | PipeType::Red => (0.0, 0.0), // 管道居中
-            PipeType::ColorfulGourd3 | PipeType::ColorfulGourd4 => (0.0, -5.0), // 糖葫芦重心偏下
-            PipeType::Lantern2 | PipeType::Lantern3 => (0.0, 0.0), // 灯笼居中
-            PipeType::Gourd3 | PipeType::Gourd5 => (0.0, -3.0), // 葫芦串重心偏下
+            PipeType::Green | PipeType::Red => (0.0, 0.0),
         }
     }
     
-    pub fn all_types() -> [PipeType; 8] {
+    // 判断是否使用精确碰撞检测
+    pub fn use_precise_collision(&self) -> bool {
+        match self {
+            PipeType::Green | PipeType::Red => false, // 传统管道使用简单AABB
+        }
+    }
+    
+    pub fn all_types() -> [PipeType; 2] {
         [
             PipeType::Green,
             PipeType::Red,
-            PipeType::ColorfulGourd3,
-            PipeType::ColorfulGourd4,
-            PipeType::Lantern2,
-            PipeType::Lantern3,
-            PipeType::Gourd3,
-            PipeType::Gourd5,
         ]
     }
 }

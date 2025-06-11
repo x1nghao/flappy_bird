@@ -45,12 +45,6 @@ impl GameAssets {
         let index = match pipe_type {
             PipeType::Green => 0,
             PipeType::Red => 1,
-            PipeType::ColorfulGourd3 => 2,
-            PipeType::ColorfulGourd4 => 3,
-            PipeType::Lantern2 => 4,
-            PipeType::Lantern3 => 5,
-            PipeType::Gourd3 => 6,
-            PipeType::Gourd5 => 7,
         };
         self.pipe_textures[index].clone()
     }

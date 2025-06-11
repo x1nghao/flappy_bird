@@ -337,12 +337,15 @@ pub fn pipe_spawn_system(
         let pipe_texture = assets.get_pipe_texture(selected_pipe_type);
         let pipe_scale = selected_pipe_type.get_scale();
         
+        // 使用标准间距
+        let adjusted_gap = config.pipe_gap;
+        
         // 上管道
         commands.spawn((
             Sprite::from_image(pipe_texture.clone()),
             Transform::from_translation(Vec3::new(
                 500.0,
-                gap_y + config.pipe_gap / 2.0 + 150.0,
+                gap_y + adjusted_gap / 2.0 + 150.0,
                 0.0,
             ))
             .with_rotation(Quat::from_rotation_z(std::f32::consts::PI))
@@ -357,7 +360,7 @@ pub fn pipe_spawn_system(
             Sprite::from_image(pipe_texture),
             Transform::from_translation(Vec3::new(
                 500.0,
-                gap_y - config.pipe_gap / 2.0 - 150.0,
+                gap_y - adjusted_gap / 2.0 - 150.0,
                 0.0,
             ))
             .with_scale(Vec3::splat(pipe_scale)),
@@ -431,38 +434,92 @@ pub fn collision_system(
         
         // 改进的管道碰撞检测
         for (pipe_transform, pipe) in pipe_query.iter() {
-            let pipe_scale = pipe.pipe_type.get_scale();
-            let (width_factor, height_factor) = pipe.pipe_type.get_collision_bounds();
-            let (offset_x, offset_y) = pipe.pipe_type.get_collision_offset();
-            
-            // 计算管道的实际碰撞区域
-            let pipe_width = 52.0 * pipe_scale * width_factor;
-            let pipe_height = 320.0 * pipe_scale * height_factor;
-            
-            // 管道碰撞中心（考虑偏移）
-            let pipe_center_x = pipe_transform.translation.x + offset_x * pipe_scale;
-            let pipe_center_y = pipe_transform.translation.y + offset_y * pipe_scale;
-            
-            // 小鸟边界
-            let bird_left = bird_transform.translation.x - bird_radius;
-            let bird_right = bird_transform.translation.x + bird_radius;
-            let bird_bottom = bird_transform.translation.y - bird_radius;
-            let bird_top = bird_transform.translation.y + bird_radius;
-            
-            // 管道边界
-            let pipe_left = pipe_center_x - pipe_width / 2.0;
-            let pipe_right = pipe_center_x + pipe_width / 2.0;
-            let pipe_bottom = pipe_center_y - pipe_height / 2.0;
-            let pipe_top = pipe_center_y + pipe_height / 2.0;
-            
-            // AABB碰撞检测
-            if bird_right > pipe_left && bird_left < pipe_right 
-                && bird_top > pipe_bottom && bird_bottom < pipe_top {
+            if check_pipe_collision(bird_transform, bird, pipe_transform, pipe) {
                 audio_events.write(AudioEvent::Hit);  // 添加碰撞音效
                 next_state.set(GameState::GameOver);
                 return;
             }
         }
+    }
+}
+
+// 新增：专门的管道碰撞检测函数
+fn check_pipe_collision(
+    bird_transform: &Transform,
+    bird: &Bird,
+    pipe_transform: &Transform,
+    pipe: &Pipe,
+) -> bool {
+    let bird_radius = bird.character.get_collision_radius();
+    let pipe_scale = pipe.pipe_type.get_scale();
+    let (base_offset_x, base_offset_y) = pipe.pipe_type.get_collision_offset();
+    
+    // 小鸟边界
+    let bird_left = bird_transform.translation.x - bird_radius;
+    let bird_right = bird_transform.translation.x + bird_radius;
+    let bird_bottom = bird_transform.translation.y - bird_radius;
+    let bird_top = bird_transform.translation.y + bird_radius;
+    
+    // 管道碰撞中心（考虑偏移）
+    let pipe_center_x = pipe_transform.translation.x + base_offset_x * pipe_scale;
+    let pipe_center_y = pipe_transform.translation.y + base_offset_y * pipe_scale;
+    
+    // 首先检查X轴是否重叠
+    let (width_factor, _) = pipe.pipe_type.get_collision_bounds();
+    let pipe_width = 52.0 * pipe_scale * width_factor;
+    let pipe_left = pipe_center_x - pipe_width / 2.0;
+    let pipe_right = pipe_center_x + pipe_width / 2.0;
+    
+    // 如果X轴没有重叠，直接返回false
+    if bird_right <= pipe_left || bird_left >= pipe_right {
+        return false;
+    }
+    
+    // X轴重叠时，使用基于高度区间的碰撞检测
+    if pipe.pipe_type.use_precise_collision() {
+        // 使用多段精确碰撞检测
+        let segments = pipe.pipe_type.get_collision_segments();
+        
+        for (seg_offset_x, seg_offset_y, width_factor, height_factor) in segments {
+            // 计算每个碰撞段的实际位置和尺寸
+            let segment_width = 52.0 * pipe_scale * width_factor;
+            let segment_height = 320.0 * pipe_scale * height_factor;
+            
+            // 段的中心位置（基础偏移 + 段偏移）
+            // 修正：seg_offset应该直接乘以pipe_scale，而不是先乘以320.0
+            let segment_center_x = pipe_transform.translation.x + 
+                (base_offset_x + seg_offset_x * 52.0) * pipe_scale;
+            let segment_center_y = pipe_transform.translation.y + 
+                (base_offset_y + seg_offset_y * 160.0) * pipe_scale;
+            
+            // 段的边界
+            let segment_left = segment_center_x - segment_width / 2.0;
+            let segment_right = segment_center_x + segment_width / 2.0;
+            let segment_bottom = segment_center_y - segment_height / 2.0;
+            let segment_top = segment_center_y + segment_height / 2.0;
+            
+            // 检查与当前段的碰撞（基于高度区间）
+            if bird_right > segment_left && bird_left < segment_right {
+                // X轴重叠时，检查Y轴是否在障碍物的高度范围内
+                if bird_top > segment_bottom && bird_bottom < segment_top {
+                    return true; // 在障碍物高度范围内，发生碰撞
+                }
+            }
+        }
+        false // 不在任何障碍物段的高度范围内，可以通过
+    } else {
+        // 传统管道使用简单AABB碰撞检测
+        let (_, height_factor) = pipe.pipe_type.get_collision_bounds();
+        
+        // 计算管道的实际碰撞区域
+        let pipe_height = 320.0 * pipe_scale * height_factor;
+        
+        // 管道边界
+        let pipe_bottom = pipe_center_y - pipe_height / 2.0;
+        let pipe_top = pipe_center_y + pipe_height / 2.0;
+        
+        // 基于高度区间的碰撞检测
+        bird_top > pipe_bottom && bird_bottom < pipe_top
     }
 }
 
