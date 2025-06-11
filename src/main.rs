@@ -3,7 +3,6 @@ mod states;
 mod components;
 mod resources;
 mod systems;
-mod embedded_assets;
 
 use audio::*;
 use states::GameState;

@@ -1,6 +1,4 @@
 use bevy::prelude::*;
-use crate::states::GameState;
-use crate::embedded_assets::AssetLoader;
 
 #[derive(Resource)]
 pub struct AudioAssets {
@@ -35,11 +33,11 @@ fn load_audio_assets(
     asset_server: Res<AssetServer>,
 ) {
     let audio_assets = AudioAssets {
-        wing: AssetLoader::load_audio(&asset_server, "audio/wing.ogg"),
-        point: AssetLoader::load_audio(&asset_server, "audio/point.ogg"),
-        hit: AssetLoader::load_audio(&asset_server, "audio/hit.ogg"),
-        die: AssetLoader::load_audio(&asset_server, "audio/die.ogg"),
-        swoosh: AssetLoader::load_audio(&asset_server, "audio/swoosh.ogg"),
+        wing: asset_server.load("audio/wing.ogg"),
+        point: asset_server.load("audio/point.ogg"),
+        hit: asset_server.load("audio/hit.ogg"),
+        die: asset_server.load("audio/die.ogg"),
+        swoosh: asset_server.load("audio/swoosh.ogg"),
     };
     
     commands.insert_resource(audio_assets);

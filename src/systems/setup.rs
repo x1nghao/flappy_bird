@@ -3,7 +3,6 @@ use bevy::window::PrimaryWindow;
 use bevy::winit::WinitWindows;
 use crate::components::*;
 use crate::resources::*;
-use crate::embedded_assets::AssetLoader;
 
 // ===== 设置和清理系统 =====
 
@@ -15,7 +14,7 @@ pub fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     // 加载所有小鸟纹理
     let bird_textures = BirdCharacter::all_characters()
         .iter()
-        .map(|character| AssetLoader::load_image(&asset_server, character.get_texture_path()))
+        .map(|character| asset_server.load(character.get_texture_path()))
         .collect();
     
     // 加载所有小鸟的动画帧
@@ -24,7 +23,7 @@ pub fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
         .map(|character| {
             character.get_animation_frames()
                 .iter()
-                .map(|frame_path| AssetLoader::load_image(&asset_server, frame_path))
+                .map(|frame_path| asset_server.load(*frame_path))
                 .collect()
         })
         .collect();
@@ -32,12 +31,12 @@ pub fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     // 加载所有管道纹理
     let pipe_textures: Vec<Handle<Image>> = PipeType::all_types()
         .iter()
-        .map(|pipe_type| AssetLoader::load_image(&asset_server, pipe_type.get_texture_path()))
+        .map(|pipe_type| asset_server.load(pipe_type.get_texture_path()))
         .collect();
 
     // 加载数字纹理 (0-9)
     let number_textures = (0..10)
-        .map(|i| AssetLoader::load_image(&asset_server, &format!("numbers/{}.png", i)))
+        .map(|i| asset_server.load(format!("numbers/{}.png", i)))
         .collect();
 
     
@@ -46,10 +45,10 @@ pub fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
         bird_textures,
         bird_animation_frames,
         pipe_texture: pipe_textures[0].clone(),
-        ground_texture: AssetLoader::load_image(&asset_server, "mountain.png"), // 暂时使用mountain.png替代
-        cloud_texture: AssetLoader::load_image(&asset_server, "cloud_1.png"),
-        mountain_texture: AssetLoader::load_image(&asset_server, "mountain.png"),
-        font: AssetLoader::load_font(&asset_server, "fonts/NotoSansSC-Regular.ttf"),
+        ground_texture: asset_server.load("mountain.png"), // 暂时使用mountain.png替代
+        cloud_texture: asset_server.load("cloud_1.png"),
+        mountain_texture: asset_server.load("mountain.png"),
+        font: asset_server.load("fonts/NotoSansSC-Regular.ttf"),
         number_textures,
     });
 }
@@ -58,34 +57,17 @@ pub fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn set_window_icon(
     windows: NonSend<WinitWindows>,
 ) {
-    // 使用AssetLoader获取图标数据
-    if let Some(icon_data) = AssetLoader::get_raw_data("icon.png") {
-        if let Ok(image) = image::load_from_memory(&icon_data) {
-            let image = image.into_rgba8();
-            let (width, height) = image.dimensions();
-            let rgba = image.into_raw();
-            
-            // 创建winit图标
-            if let Ok(icon) = winit::window::Icon::from_rgba(rgba, width, height) {
-                // 为所有窗口设置图标
-                for window in windows.windows.values() {
-                    window.set_window_icon(Some(icon.clone()));
-                }
-            }
-        }
-    } else {
-        // 回退到文件系统加载
-        if let Ok(image) = image::open("assets/icon.png") {
-            let image = image.into_rgba8();
-            let (width, height) = image.dimensions();
-            let rgba = image.into_raw();
-            
-            // 创建winit图标
-            if let Ok(icon) = winit::window::Icon::from_rgba(rgba, width, height) {
-                // 为所有窗口设置图标
-                for window in windows.windows.values() {
-                    window.set_window_icon(Some(icon.clone()));
-                }
+    // 使用image库直接加载图标文件
+    if let Ok(image) = image::open("assets/icon.png") {
+        let image = image.into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        
+        // 创建winit图标
+        if let Ok(icon) = winit::window::Icon::from_rgba(rgba, width, height) {
+            // 为所有窗口设置图标
+            for window in windows.windows.values() {
+                window.set_window_icon(Some(icon.clone()));
             }
         }
     }

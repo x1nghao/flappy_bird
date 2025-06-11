@@ -5,28 +5,25 @@
 ## 自动化功能
 
 ### 1. 跨平台构建
-- **Linux** (`x86_64-unknown-linux-gnu`): 生成 tar.gz 包，包含可执行文件和 assets 目录
-- **Windows** (`x86_64-pc-windows-gnu`): 生成 zip 包，**资源嵌入到可执行文件中**，支持单文件分发
-- **macOS** (`x86_64-apple-darwin`): 生成 tar.gz 包和 .app 应用包，包含图标和资源
+- **Linux (x86_64)**: 标准可执行文件 + assets
+- **Windows (x86_64)**: 嵌入图标的可执行文件 + assets
+- **macOS (x86_64 & ARM64)**: 完整的 .app 应用包
 
-### 2. 资源处理自动化
-
-#### Windows 平台
-- 在 `build.rs` 中自动嵌入 `assets/favicon.ico` 作为应用图标
-- 使用 `rust-embed` 将整个 `assets/` 目录嵌入到可执行文件中
-- 生成的 `.exe` 文件包含所有游戏资源，支持单文件分发
+### 2. 图标自动化处理
 
 #### macOS 平台
 - 自动从 `assets/favicon.ico` 生成 PNG 格式图标
 - 创建完整的 iconset（包含所有必需尺寸）
 - 生成标准的 .icns 文件
 - 创建符合 macOS 标准的应用包结构
-- 创建 `.app` 应用包，包含可执行文件、资源和图标
+
+#### Windows 平台
+- 使用 `winres` 将图标嵌入到可执行文件中
+- 支持 .ico 格式图标
 
 #### Linux 平台
 - 运行时通过 Bevy/winit 设置窗口图标
 - 使用 PNG 格式图标
-- 资源文件与可执行文件分离打包
 
 ### 3. 触发条件
 
@@ -42,14 +39,6 @@
 2. 生成对应的图标和应用包
 3. 创建 GitHub Release
 4. 上传所有构建产物
-
-## 构建产物
-
-发布时会生成以下文件：
-- `flappy_bird-linux-x86_64.tar.gz`: Linux 版本（可执行文件 + assets 目录）
-- `flappy_bird-windows-x86_64.zip`: Windows 版本（**单个 .exe 文件，资源已嵌入**）
-- `flappy_bird-macos-x86_64.tar.gz`: macOS 版本（可执行文件 + assets 目录）
-- `FlappyBird.app.zip`: macOS 应用包（完整的 .app 包）
 
 ## 文件结构
 
