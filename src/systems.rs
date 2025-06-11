@@ -59,10 +59,10 @@ pub fn setup_menu_when_ready(
     
     // 游戏标题
     commands.spawn((
-        Text2d::new("Flappy Bevy"),
+        Text2d::new("Flappy Bird"),
         TextFont {
             font: assets.font.clone(),
-            font_size: 48.0,
+            font_size: 50.0,
             ..default()
         },
         TextColor(Color::WHITE),
@@ -92,6 +92,70 @@ pub fn setup_menu_when_ready(
         MenuText,
     ));
     
+
+    
+    // 右侧排行榜标题
+    commands.spawn((
+        Text2d::new("排行榜"),
+        TextFont {
+            font: assets.font.clone(),
+            font_size: 30.0,
+            ..default()
+        },
+        TextColor(Color::srgb(1.0, 0.8, 0.0)),
+        Transform::from_translation(Vec3::new(280.0, 110.0, 1.0)),
+        MenuText,
+    ));
+    
+    // 右侧排行榜内容
+    let leaderboard = &game_data.save_data.leaderboard;
+    if leaderboard.is_empty() {
+        commands.spawn((
+            Text2d::new("暂无记录\n开始游戏创建记录吧!"),
+            TextFont {
+                font: assets.font.clone(),
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.8, 0.8, 0.8)),
+            Transform::from_translation(Vec3::new(280.0, 30.0, 1.0)),
+            MenuText,
+        ));
+    } else {
+        for (i, entry) in leaderboard.iter().enumerate().take(5) {
+            let rank_color = match i {
+                0 => Color::srgb(1.0, 0.8, 0.0), // 金色
+                1 => Color::srgb(0.8, 0.8, 0.8), // 银色
+                2 => Color::srgb(0.8, 0.5, 0.2), // 铜色
+                _ => Color::srgb(0.9, 0.9, 0.9),
+            };
+            
+            let rank_text = match i {
+                0 => "第1名".to_string(),
+                1 => "第2名".to_string(),
+                2 => "第3名".to_string(),
+                _ => format!("第{}名", i + 1),
+            };
+            
+            commands.spawn((
+                Text2d::new(format!(
+                    "{} {} - {} 分",
+                    rank_text,
+                    entry.character.get_name(),
+                    entry.score
+                )),
+                TextFont {
+                    font: assets.font.clone(),
+                    font_size: 19.0,
+                    ..default()
+                },
+                TextColor(rank_color),
+                Transform::from_translation(Vec3::new(280.0, 65.0 - i as f32 * 30.0, 1.0)),
+                MenuText,
+            ));
+        }
+    }
+    
     // 控制说明
     commands.spawn((
         Text2d::new("← → 或滚轮切换角色\n\n空格键或鼠标左键开始游戏"),
@@ -101,7 +165,7 @@ pub fn setup_menu_when_ready(
             ..default()
         },
         TextColor(Color::srgb(0.8, 0.8, 0.8)),
-        Transform::from_translation(Vec3::new(0.0, -80.0, 1.0)),
+        Transform::from_translation(Vec3::new(0.0, -120.0, 1.0)),
         MenuText,
     ));
 }
@@ -231,6 +295,11 @@ pub fn menu_system(
     if keyboard_input.just_pressed(KeyCode::Space) || mouse_input.just_pressed(MouseButton::Left) {
         audio_events.write(AudioEvent::Swoosh);
         next_state.set(GameState::Playing);
+    }
+    
+    if keyboard_input.just_pressed(KeyCode::KeyL) {
+        audio_events.write(AudioEvent::Swoosh);
+        next_state.set(GameState::Leaderboard);
     }
 }
 
@@ -606,7 +675,7 @@ pub fn restart_system(
     
     if keyboard_input.just_pressed(KeyCode::Escape) {
         match current_state.get() {
-            GameState::Playing | GameState::GameOver => next_state.set(GameState::Menu),
+            GameState::Playing | GameState::GameOver | GameState::Leaderboard => next_state.set(GameState::Menu),
             _ => {}
         }
     }
@@ -617,4 +686,187 @@ pub fn on_game_over(
     mut audio_events: EventWriter<AudioEvent>,
 ) {
     audio_events.write(AudioEvent::Die);
+}
+
+// 数据保存系统
+pub fn save_game_data(
+    mut game_data: ResMut<GameData>,
+    save_manager: Res<SaveManager>,
+) {
+    // 将当前分数添加到排行榜
+    let updated_save_data = save_manager.add_score_to_leaderboard(
+        game_data.save_data.clone(),
+        game_data.score,
+        game_data.selected_character,
+    );
+    
+    // 保存数据到文件
+    if let Err(e) = save_manager.save_data(&updated_save_data) {
+        eprintln!("保存数据失败: {}", e);
+    }
+    
+    // 更新游戏数据
+    game_data.save_data = updated_save_data.clone();
+    game_data.high_score = updated_save_data.high_score;
+}
+
+// 排行榜设置系统
+pub fn setup_leaderboard(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    game_data: Res<GameData>,
+) {
+    // 主标题
+    commands.spawn((
+        Text2d::new("🏆 排行榜 🏆"),
+        TextFont {
+            font: assets.font.clone(),
+            font_size: 48.0,
+            ..default()
+        },
+        TextColor(Color::srgb(1.0, 0.8, 0.0)),
+        Transform::from_translation(Vec3::new(0.0, 280.0, 1.0)),
+        LeaderboardText,
+    ));
+    
+    // 左侧：排行榜标题
+    commands.spawn((
+        Text2d::new("前10名最高分"),
+        TextFont {
+            font: assets.font.clone(),
+            font_size: 32.0,
+            ..default()
+        },
+        TextColor(Color::srgb(0.9, 0.9, 1.0)),
+        Transform::from_translation(Vec3::new(-300.0, 220.0, 1.0)),
+        LeaderboardText,
+    ));
+    
+    // 左侧：排行榜条目
+    let leaderboard = &game_data.save_data.leaderboard;
+    if leaderboard.is_empty() {
+        commands.spawn((
+            Text2d::new("暂无记录\n\n开始游戏创建\n你的第一个记录吧！"),
+            TextFont {
+                font: assets.font.clone(),
+                font_size: 24.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            Transform::from_translation(Vec3::new(-300.0, 100.0, 1.0)),
+            LeaderboardText,
+        ));
+    } else {
+        for (i, entry) in leaderboard.iter().enumerate().take(10) {
+            let rank_color = match i {
+                0 => Color::srgb(1.0, 0.8, 0.0), // 金色
+                1 => Color::srgb(0.8, 0.8, 0.8), // 银色
+                2 => Color::srgb(0.8, 0.5, 0.2), // 铜色
+                _ => Color::WHITE,
+            };
+            
+            let rank_symbol = match i {
+                0 => "🥇",
+                1 => "🥈",
+                2 => "🥉",
+                _ => &format!("{:2}.", i + 1),
+            };
+            
+            // 格式化时间戳
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let time_diff = now.saturating_sub(entry.timestamp);
+            let formatted_time = if time_diff < 60 {
+                "刚刚".to_string()
+            } else if time_diff < 3600 {
+                format!("{}分钟前", time_diff / 60)
+            } else if time_diff < 86400 {
+                format!("{}小时前", time_diff / 3600)
+            } else {
+                format!("{}天前", time_diff / 86400)
+            };
+            
+            commands.spawn((
+                Text2d::new(format!(
+                    "{} {} - {} 分\n    {}",
+                    rank_symbol,
+                    entry.character.get_name(),
+                    entry.score,
+                    formatted_time
+                )),
+                TextFont {
+                    font: assets.font.clone(),
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(rank_color),
+                Transform::from_translation(Vec3::new(-300.0, 170.0 - i as f32 * 40.0, 1.0)),
+                LeaderboardText,
+            ));
+        }
+    }
+    
+    // 右侧：统计信息
+    commands.spawn((
+        Text2d::new(format!(
+            "📊 游戏统计\n\n总游戏次数: {}\n总得分: {}\n平均分数: {:.1}\n最高分: {}",
+            game_data.save_data.total_games,
+            game_data.save_data.total_score,
+            if game_data.save_data.total_games > 0 {
+                game_data.save_data.total_score as f32 / game_data.save_data.total_games as f32
+            } else {
+                0.0
+            },
+            game_data.save_data.high_score
+        )),
+        TextFont {
+            font: assets.font.clone(),
+            font_size: 24.0,
+            ..default()
+        },
+        TextColor(Color::srgb(0.8, 0.9, 1.0)),
+        Transform::from_translation(Vec3::new(300.0, 100.0, 1.0)),
+        StatisticsText,
+    ));
+    
+    // 返回提示
+    commands.spawn((
+        Text2d::new("按 ESC 键返回主菜单"),
+        TextFont {
+            font: assets.font.clone(),
+            font_size: 24.0,
+            ..default()
+        },
+        TextColor(Color::srgb(0.8, 0.8, 0.8)),
+        Transform::from_translation(Vec3::new(0.0, -250.0, 1.0)),
+        LeaderboardText,
+    ));
+}
+
+// 排行榜系统
+pub fn leaderboard_system(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut audio_events: EventWriter<AudioEvent>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        audio_events.write(AudioEvent::Swoosh);
+        next_state.set(GameState::Menu);
+    }
+}
+
+// 排行榜清理系统
+pub fn cleanup_leaderboard(
+    mut commands: Commands,
+    leaderboard_query: Query<Entity, With<LeaderboardText>>,
+    statistics_query: Query<Entity, With<StatisticsText>>,
+) {
+    for entity in leaderboard_query.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in statistics_query.iter() {
+        commands.entity(entity).despawn();
+    }
 }

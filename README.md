@@ -1,4 +1,4 @@
-# Flappy Bevy 🐦
+# Flappy Bird 🐦
 
 一个使用 Rust 语言和 Bevy 引擎开发的 Flappy Bird 风格游戏，融合了经典玩法和现代元素。
 

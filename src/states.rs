@@ -7,4 +7,5 @@ pub enum GameState {
     Menu,
     Playing,
     GameOver,
+    Leaderboard,
 }

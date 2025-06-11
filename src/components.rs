@@ -1,7 +1,8 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // 小鸟角色枚举 - 支持所有6个角色
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BirdCharacter {
     YellowBird,
     RedBird,
@@ -18,7 +19,7 @@ pub struct Bird {
 }
 
 // 管道类型枚举
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PipeType {
     Green,
     Red,
@@ -72,6 +73,15 @@ pub struct GameOverText;
 
 #[derive(Component)]
 pub struct ScoreDigit;
+
+#[derive(Component)]
+pub struct LeaderboardText;
+
+#[derive(Component)]
+pub struct LeaderboardEntry;
+
+#[derive(Component)]
+pub struct StatisticsText;
 
 impl PipeType {
     pub fn get_texture_path(&self) -> &'static str {
