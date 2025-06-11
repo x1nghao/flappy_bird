@@ -3,6 +3,7 @@ mod states;
 mod components;
 mod resources;
 mod systems;
+mod embedded_assets;
 
 use audio::*;
 use states::GameState;
@@ -25,7 +26,7 @@ fn main() {
                 ..default()
             }),
             ..default()
-        }))
+        }).set(ImagePlugin::default_nearest()))
         .init_state::<GameState>()
         .insert_resource(ClearColor(Color::srgb(0.34, 0.75, 0.79)))
         .insert_resource(GameData {
@@ -41,7 +42,7 @@ fn main() {
             pipe_gap: 150.0,
             pipe_spawn_timer: Timer::from_seconds(2.0, TimerMode::Repeating),
         })
-        .add_systems(Startup, (setup_camera, load_assets))
+        .add_systems(Startup, (setup_camera, load_assets, set_window_icon))
         .add_systems(
             Update,
             (
@@ -51,6 +52,7 @@ fn main() {
                 (
                     bird_input_system,
                     bird_physics_system,
+                    wing_animation_system,
                     pipe_spawn_system,
                     scrolling_system,
                     collision_system,

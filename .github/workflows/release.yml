@@ -74,20 +74,105 @@ jobs:
           ${{ runner.os }}-${{ matrix.target }}-target-
 
     - name: Build
-      run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          # 确保assets目录存在（Windows嵌入式资源需要）
+          if [ ! -d "assets" ]; then
+            echo "Warning: assets directory not found, creating empty one"
+            mkdir -p assets
+          fi
+          cargo build --release --target ${{ matrix.target }}
+
+    - name: Create app icon (macOS only)
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        # Convert favicon.ico to PNG if needed
+        if [ ! -f assets/icon.png ]; then
+          sips -s format png assets/favicon.ico --out assets/icon.png
+        fi
+        
+        # Create iconset directory
+        mkdir -p AppIcon.iconset
+        
+        # Generate different sizes for iconset
+        sips -z 16 16 assets/icon.png --out AppIcon.iconset/icon_16x16.png
+        sips -z 32 32 assets/icon.png --out AppIcon.iconset/icon_32x32.png
+        sips -z 32 32 assets/icon.png --out AppIcon.iconset/icon_16x16@2x.png
+        sips -z 64 64 assets/icon.png --out AppIcon.iconset/icon_32x32@2x.png
+        sips -z 128 128 assets/icon.png --out AppIcon.iconset/icon_128x128.png
+        sips -z 256 256 assets/icon.png --out AppIcon.iconset/icon_128x128@2x.png
+        sips -z 256 256 assets/icon.png --out AppIcon.iconset/icon_256x256.png
+        sips -z 512 512 assets/icon.png --out AppIcon.iconset/icon_256x256@2x.png
+        sips -z 512 512 assets/icon.png --out AppIcon.iconset/icon_512x512.png
+        sips -z 1024 1024 assets/icon.png --out AppIcon.iconset/icon_512x512@2x.png
+        
+        # Convert to icns
+        iconutil -c icns AppIcon.iconset
+
+    - name: Create macOS app bundle
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        # Create app bundle structure
+        mkdir -p FlappyBird.app/Contents/MacOS
+        mkdir -p FlappyBird.app/Contents/Resources
+        
+        # Copy executable
+        cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} FlappyBird.app/Contents/MacOS/
+        
+        # Copy assets
+        cp -r assets FlappyBird.app/Contents/MacOS/
+        
+        # Copy icon
+        cp AppIcon.icns FlappyBird.app/Contents/Resources/
+        
+        # Create Info.plist
+        cat > FlappyBird.app/Contents/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>flappy_bird</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.example.flappybird</string>
+            <key>CFBundleName</key>
+            <string>Flappy Bird</string>
+            <key>CFBundleVersion</key>
+            <string>1.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleIconFile</key>
+            <string>AppIcon</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.12</string>
+        </dict>
+        </plist>
+        EOF
 
     - name: Create release package
       shell: bash
       run: |
         mkdir -p release
-        cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
-        cp -r assets release/
-        cp README.md release/
         
-        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-          cd release && 7z a ../${{ matrix.asset_name }}.zip * && cd ..
-        else
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          # For macOS, package the app bundle
+          cp -r FlappyBird.app release/
           tar -czf ${{ matrix.asset_name }}.tar.gz -C release .
+        else
+          # For other platforms, use the regular executable
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
+          cp -r assets release/
+          
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cd release && 7z a ../${{ matrix.asset_name }}.zip * && cd ..
+          else
+            tar -czf ${{ matrix.asset_name }}.tar.gz -C release .
+          fi
         fi
 
     - name: Upload build artifacts

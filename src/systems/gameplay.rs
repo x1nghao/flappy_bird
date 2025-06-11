@@ -15,7 +15,7 @@ pub fn setup_game(
     game_data.score = 0;
 
     // 生成小鸟 - 使用选中的角色和对应的缩放
-    commands.spawn((
+    let mut bird_entity = commands.spawn((
         Sprite::from_image(assets.get_bird_texture(game_data.selected_character)),
         Transform::from_translation(Vec3::new(-200.0, 0.0, 1.0))
             .with_scale(Vec3::splat(game_data.selected_character.get_scale())),
@@ -26,6 +26,16 @@ pub fn setup_game(
         Gravity(980.0),
         Collider,
     ));
+    
+    // 如果角色支持动画，添加动画组件
+    if game_data.selected_character.has_animation() {
+        let animation_frames = assets.get_bird_animation_frames(game_data.selected_character);
+        bird_entity.insert(WingAnimation {
+            timer: Timer::from_seconds(0.15, TimerMode::Repeating), // 每帧0.15秒
+            current_frame: 1, // 从中间帧开始
+            frames: animation_frames,
+        });
+    }
 
     // 生成背景山脉
     for i in 0..5 {
@@ -167,6 +177,31 @@ pub fn scrolling_system(
             let random_gap = rng.gen_range(200.0..600.0); // 随机间隔200-600像素
             // 移动到屏幕右侧外（600像素外）+ 基础间距 + 随机间隔
             transform.translation.x = 600.0 + 300.0 + random_gap;
+        }
+    }
+}
+
+// 翅膀拍打动画系统
+pub fn wing_animation_system(
+    time: Res<Time>,
+    mut query: Query<(&mut WingAnimation, &mut Sprite)>,
+) {
+    for (mut animation, mut sprite) in query.iter_mut() {
+        animation.timer.tick(time.delta());
+        
+        if animation.timer.just_finished() {
+            // 循环播放动画帧：0 -> 1 -> 2 -> 1 -> 0 -> ...
+            animation.current_frame = match animation.current_frame {
+                0 => 1,
+                1 => 2,
+                2 => 1,
+                _ => 1, // 默认回到中间帧
+            };
+            
+            // 更新精灵纹理
+            if animation.current_frame < animation.frames.len() {
+                sprite.image = animation.frames[animation.current_frame].clone();
+            }
         }
     }
 }

@@ -3,6 +3,14 @@ use std::fs;
 use std::path::Path;
 
 fn main() {
+    // Windows icon embedding
+    #[cfg(target_os = "windows")]
+    {
+        let mut res = winres::WindowsResource::new();
+        res.set_icon("assets/favicon.ico");
+        res.compile().unwrap();
+    }
+    
     let out_dir = env::var("OUT_DIR").unwrap();
     let target_dir = Path::new(&out_dir).parent().unwrap().parent().unwrap().parent().unwrap();
     let assets_target = target_dir.join("assets");

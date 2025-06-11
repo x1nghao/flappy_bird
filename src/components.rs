@@ -58,6 +58,14 @@ pub struct Scrolling {
     pub speed: f32,
 }
 
+// 动画组件
+#[derive(Component)]
+pub struct WingAnimation {
+    pub timer: Timer,
+    pub current_frame: usize,
+    pub frames: Vec<Handle<Image>>,
+}
+
 // UI组件
 #[derive(Component)]
 pub struct ScoreText;
@@ -209,5 +217,35 @@ impl BirdCharacter {
             // 中文角色可能需要不同的碰撞半径
             BirdCharacter::WuSaQi | BirdCharacter::JiYi | BirdCharacter::XiaoBa => 10.0,
         }
+    }
+    
+    // 获取动画帧路径
+    pub fn get_animation_frames(&self) -> Vec<&'static str> {
+        match self {
+            BirdCharacter::YellowBird => vec![
+                "birds/yellowbird-downflap.png",
+                "birds/yellowbird-midflap.png",
+                "birds/yellowbird-upflap.png",
+            ],
+            BirdCharacter::RedBird => vec![
+                "birds/redbird-downflap.png",
+                "birds/redbird-midflap.png",
+                "birds/redbird-upflap.png",
+            ],
+            BirdCharacter::BlueBird => vec![
+                "birds/bluebird-downflap.png",
+                "birds/bluebird-midflap.png",
+                "birds/bluebird-upflap.png",
+            ],
+            // 中文角色不使用动画，返回单帧
+            BirdCharacter::WuSaQi => vec!["birds/乌撒奇.png"],
+            BirdCharacter::JiYi => vec!["birds/吉伊.png"],
+            BirdCharacter::XiaoBa => vec!["birds/小八.png"],
+        }
+    }
+    
+    // 检查是否支持动画
+    pub fn has_animation(&self) -> bool {
+        matches!(self, BirdCharacter::YellowBird | BirdCharacter::RedBird | BirdCharacter::BlueBird)
     }
 }
