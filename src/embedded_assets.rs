@@ -3,10 +3,10 @@
 
 use bevy::prelude::*;
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use rust_embed::RustEmbed;
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 struct EmbeddedAssets;
@@ -17,7 +17,7 @@ pub struct AssetLoader;
 impl AssetLoader {
     /// 加载图像资源
     pub fn load_image(asset_server: &AssetServer, path: &str) -> Handle<Image> {
-        #[cfg(target_os = "windows")]
+        #[cfg(windows)]
         {
             // Windows平台：尝试从嵌入资源加载
             if let Some(embedded_data) = EmbeddedAssets::get(path) {
@@ -46,7 +46,7 @@ impl AssetLoader {
             asset_server.load(path)
         }
         
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(not(windows))]
         {
             // 其他平台：直接从文件系统加载
             asset_server.load(path)

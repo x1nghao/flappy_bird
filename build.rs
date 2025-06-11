@@ -4,7 +4,7 @@ use std::path::Path;
 
 fn main() {
     // Windows icon embedding
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
         let mut res = winres::WindowsResource::new();
         res.set_icon("assets/favicon.ico");
