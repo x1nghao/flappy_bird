@@ -15,8 +15,8 @@ dirs = "5.0"
 image = "0.24"
 winit = "0.30"
 
-# Windows平台资源嵌入
-[target.'cfg(target_os = "windows")'.dependencies]
+# Windows平台资源嵌入 - 统一使用cfg(windows)
+[target.'cfg(windows)'.dependencies]
 rust-embed = "8.0"
 
 [[bin]]
